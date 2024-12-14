@@ -1,0 +1,96 @@
+---
+title: "GameWeight & Manufacturing Playtime Analysis"
+output: html_document
+date: "2024-10-23"
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(sjPlot)
+library(ggthemes)
+
+games = read.csv('games.csv')
+ggplot(games, aes(GameWeight)) +
+    geom_histogram(bins = 30, fill = "#0072B2") + 
+    scale_fill_brewer() +
+    theme_classic() + 
+    ylab("Count") + 
+    labs(title = "Histogram of GameWeight")
+
+ggplot(games, aes(AvgRating)) +
+    geom_histogram(fill = "brown3") + 
+    scale_fill_brewer() +
+    theme_classic() + 
+    ylab("Count") + 
+    labs(title = "Histogram of AvgRating")
+
+ggplot(games %>% filter(YearPublished>1950), aes(YearPublished)) +
+    geom_histogram(fill = "palegreen3") + 
+    scale_fill_brewer() +
+    theme_classic() + 
+    ylab("Count") + 
+    labs(title = "Histogram of YearPublished")
+```
+
+```{r}
+# filter games to year after 2000 to focus on recent trends. 
+# avgrating & gameweight > 0 because BGG website indicates 0 is not on the scale
+games_filtered_2000 = games %>% filter(YearPublished>2000 & AvgRating>0 & GameWeight>0)
+
+# create interaction term for gameweight and mfgplaytime
+games_filtered_2000 = games_filtered_2000 %>% mutate("GamePlayInteraction" = GameWeight * MfgPlaytime)
+
+# split training and test set
+sample = sample(c(TRUE, FALSE), nrow(games_filtered_2000), replace=TRUE, prob=c(0.7,0.3))
+train  = games_filtered_2000[sample, ]
+test   = games_filtered_2000[!sample, ]
+
+# create regression model with training set
+m = lm(AvgRating ~ GameWeight + MfgPlaytime + GamePlayInteraction, train)
+summary(m) #.29 adj R2
+plot(m, main = "Avg Rating vs GameWeight + MfgPlaytime + GameWeight * MfgPlaytime") # ols assumption plots
+# tail qq line, indicating slight violation of normality. 
+# box-cox transformation only makes slight improvement, moving forward with no transform
+
+#### get accuracy ####
+rmse = sqrt(mean(m$residuals^2)) # 0.76
+
+preds = predict(m, test)
+predicted = preds
+
+actual = test$AvgRating
+difference = ((actual-preds)/actual)
+accuracy = 1-mean(abs(difference)) # 90.48% accuracy
+```
+
+```{r, warning=FALSE}
+# set theme for plot
+set_theme(base = theme_blank(),
+          theme.font = 'calibri',
+          axis.title.size = 1.2,
+          axis.textsize.x = 1.2,
+          axis.textsize.y = 1.2)
+my_sjplot = plot_model(m, type="pred", show.p = TRUE, colors = "#3498db")
+
+#### GAMEWEIGHT PLOT ####
+my_sjplot$GameWeight +
+   scale_y_continuous(limits = c(1, 10)) 
+save_plot('gamew.png', fig = last_plot())
+#### MfgPlaytime PLOT ####
+my_sjplot$MfgPlaytime +
+   scale_y_continuous(limits = c(1, 10)) +
+   scale_x_continuous(limits = c(1000, 2000))
+save_plot('mfg.png', fig = last_plot())
+#### INTERACTION PLOT ####
+my_sjplot$GamePlayInteraction +
+   scale_y_continuous(limits = c(1, 10)) +
+   scale_x_continuous(limits = c(6000, 12000))
+save_plot('gameplayinter.png', fig = last_plot())
+
+```
+
+
+
+
