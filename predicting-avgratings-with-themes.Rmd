@@ -1,0 +1,72 @@
+---
+title: "Boardgame Themes Model"
+output: html_notebook
+
+---
+
+
+
+```{r, warning = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(glmnet)
+require(knitr) 
+require(broom)
+```
+
+```{r}
+games <- read_csv("games.csv")
+themes <- read_csv("themes.csv")
+```
+
+
+``` {r}
+games = games %>% mutate("GamePlayInteraction" = GameWeight * MfgPlaytime)
+games_short = games[,c("BGGId", "YearPublished", "GameWeight", "AvgRating", 'MfgPlaytime', 'GamePlayInteraction')]
+games_themes = merge(games_short, themes, by="BGGId")
+games_themes = games_themes[,3:223] # remove BGGId and yearpub columns
+colnames(games_themes) = gsub(" ", "_", colnames(games_themes))
+
+sample = sample(c(TRUE, FALSE), nrow(games_themes), replace=TRUE, prob=c(0.7,0.3))
+train  = games_themes[sample, ]
+test   = games_themes[!sample, ]
+
+head(train)
+```
+
+```{r}
+model_themes_filtered_train = lm(AvgRating ~ ., train) 
+lasso_m = glmnet(train[,-2], train[,2], alpha = 1)
+summary(model_themes_filtered_train)
+min_lambda = min(lasso_m$lambda)
+min_lasso_m = glmnet(games_themes[,-2], games_themes[,2], alpha = 1, lambda = min_lambda)
+coef(min_lasso_m) # 1 variable removed - movie industry
+
+train_selected_vars = (train[colnames(train) != c("Theme_Movie_Industry")])
+
+ml = lm(AvgRating ~ ., train_selected_vars)
+summary(ml)
+plot(ml)
+rmse = sqrt(mean(ml$residuals^2)) # rmse -- standard deviation between residuals
+
+out = tidy(ml)
+# write.csv(out, file = "themes_model_output.csv") # uncomment to export csv
+```
+
+```{r}
+# get accuracy
+m = lm(AvgRating ~ ., train_selected_vars)
+preds = predict(m, test)
+
+actual = test$AvgRating
+difference = ((actual-preds)/actual)
+accuracy = 1-mean(abs(difference))
+```
+
+
+
+
+
+
