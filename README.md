@@ -3,7 +3,7 @@ Multiple linear regression analysis of board games and themes data.
 
 ## Project Objectives
 #### predicting-avgratings.Rmd
-Leverage the Boardgames Geek data set to identify relevant factors that impact the AvgRatings response. 
+Leverage the BoardGameGeek dataset to identify relevant factors that impact the AvgRatings response. 
 <ul>
 <li>Which variables have a significant positive relationship with average ratings?</li></ul>
 
