@@ -21,4 +21,4 @@ Install packages:
 
 ## Licensing, Authors, Acknowledgements<a name="licensing"></a>
 
-Credit for data goes to Airbnb Inside. Licensing for data and additional descriptive information can be found at Kaggle [here](https://www.kaggle.com/datasets/threnjen/board-games-database-from-boardgamegeek).
+Credit for data goes to BoardGameGeek. Licensing for data and additional descriptive information can be found at Kaggle [here](https://www.kaggle.com/datasets/threnjen/board-games-database-from-boardgamegeek).
